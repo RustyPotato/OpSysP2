@@ -1,10 +1,14 @@
 /* TODO::
 
 * Reading input files and sorting that out. 
-* Next Fit
 * Non-contiguous memory allocation. 
-* Running all algorithms serially. 
+* Ordering the processes for checking (PQueue? Sorted Vector?)
 * Run on server/compare outputs to expected. 
+* Check if Peter is OK with int-ly typed algorithms. 
+* Actually have the code print out the name of the algorithm, 
+    i.e. time 0ms: Simulator started (Contiguous -- Next-Fit)
+     vs  time 0ms: Simulator started (1)
+
 
 */
 
@@ -21,7 +25,7 @@
 #include <sstream>
 #include "Process.cpp"
 
-#define defragTime 210
+#define t_memmove 1
 #define lineWidth 32
 #define MEMORYSIZE 256
 
@@ -182,7 +186,7 @@ int findLocation(const string& memory, const Process& p, int algorithm) {
 		return -1;
 	}
 	
-	else if (algorithm == 2) { // Worst Fit, fit into largest partition. 
+	else if (algorithm == 3) { // Worst Fit, fit into largest partition. 
 		unsigned int location = -1;
 		unsigned int contiguous = 0;
 		
@@ -214,7 +218,7 @@ int findLocation(const string& memory, const Process& p, int algorithm) {
 		return location;
 	}
 	
-	else if (algorithm == 3) { // Best Fit, stick into smallest partition.
+	else if (algorithm == 2) { // Best Fit, stick into smallest partition.
 		unsigned int location = -1;
 		unsigned int contiguous = INT_MAX;
 		
@@ -223,7 +227,7 @@ int findLocation(const string& memory, const Process& p, int algorithm) {
 				for (unsigned int j=0; j<memory.size()-i; j++) {
 					// Reached the end of an empty section.
 					if (memory[i+j] != '.') {
-						if (contiguous < j && j >= (unsigned)p.getMemorySize()) {
+						if (contiguous > j && j >= (unsigned)p.getMemorySize()) {
 							contiguous = j;
 							location = i;
 						}
@@ -232,7 +236,7 @@ int findLocation(const string& memory, const Process& p, int algorithm) {
 					}
 					// Reached the end of memory space. 
 					if (j == memory.size()-i-1) {
-						if (contiguous < j && j+1 >= (unsigned)p.getMemorySize()) {
+						if (contiguous > j && j+1 >= (unsigned)p.getMemorySize()) {
 							contiguous = j+1;
 							location = i;
 						}
@@ -243,7 +247,6 @@ int findLocation(const string& memory, const Process& p, int algorithm) {
 			}
 		}
 		
-		cout << "Loc: " << location << ", contiguous: " << contiguous << endl;
 		return location;
 	}
 	
@@ -292,7 +295,7 @@ void placeNonContiguousProcess(string& memory, const Process& p) {
 	return;
 }
 
-string defragment(string& memory, vector<Process>& allP) {
+string defragment(string& memory, vector<Process>& allP, int& tick) {
 	nextFitTracker = 0; // Reset next fit algorithm
 	int movedFrames = 0;
 	set<char> movedProcesses;
@@ -314,15 +317,17 @@ string defragment(string& memory, vector<Process>& allP) {
 			}
 		}
 	}
-	
+	tick += (t_memmove*movedFrames);
 	
 	//Push arrival times of all successive processes back
- 	for (unsigned int i=0; i<allP.size(); i++) {
-		allP[i].pushbackArrivals(defragTime);
+	for (unsigned int i=0; i<allP.size(); i++) {
+		allP[i].pushbackArrivals(movedFrames*t_memmove);
 	}
+	
 	
 	// Write up of statistics to main for printing. 
 	stringstream ss;
+	ss << "time " << tick << "ms: Defragmentation complete ";
 	ss << "(moved " << movedFrames << " frames: ";
 	for (set<char>::iterator i = movedProcesses.begin(); i != movedProcesses.end(); i++) {
 		if (i == movedProcesses.begin())
@@ -338,10 +343,9 @@ string defragment(string& memory, vector<Process>& allP) {
 }
 
 int main(int argc, char* argv[]) {
-	//string memory = "AAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB....................................DDDDDDDDD............................................................................HHHHHHHHHHHHHHHHHHHHHHHHHHH.............................................................";
 	
 	
-	for (int algorithm = 3; algorithm < 4; algorithm++) {
+	for (int algorithm = 1; algorithm < 4; algorithm++) {
 		string memory(MEMORYSIZE, '.');
 		vector<Process> allP;
 		readInput(argv[1], allP);
@@ -381,9 +385,8 @@ int main(int argc, char* argv[]) {
 						if (unallocatedMemoryFrames(memory) >= allP[i].getMemorySize()) {
 							cout << "time " << tick << "ms: Cannot place process " << allP[i].getID() << " -- starting defragmentation" << endl;
 						
-							string defragResponse = defragment(memory, allP);
-							tick += defragTime;
-							cout << "time " << tick << "ms: Defragmentation complete " << defragResponse << endl;
+							string defragResponse = defragment(memory, allP, tick);
+							cout << defragResponse << endl;
 						
 							printMemory(memory);
 							placeLoc = findLocation(memory, allP[i], algorithm);
@@ -413,7 +416,8 @@ int main(int argc, char* argv[]) {
 	}
 	
 	/*
-	memory = "ffffffffffffffffffffffffbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccccccccccccccccccccccccccccccccccddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddeeeeeeeeeeeeee..............................................";
+	//string memory = "ffffffffffffffffffffffffbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccccccccccccccccccccccccccccccccccddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddeeeeeeeeeeeeee..............................................";
+	//string memory = "AAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB....................................DDDDDDDDD............................................................................HHHHHHHHHHHHHHHHHHHHHHHHHHH.............................................................";
 	
 	// SAMPLE TESTS OF FUNCTIONS. 
 	printMemory(memory);
