@@ -95,7 +95,7 @@ vector<string> tokenize(string input){
 		prev = pos + 1;
 		//cout << output[output.size()-1] << endl;
 	}
-	output.push_back(input.substr(prev, pos-prev));
+	output.push_back(input.substr(prev));
 	return output;
 }
 
@@ -452,6 +452,7 @@ int main(int argc, char* argv[]) {
 				}
 			}
 			tick = findNextEvent(allP, tick);
+			
 		}
 		
 		cout << "time " << tick << "ms: Simulator ended (" << algorithmNames[algorithm] << ")" << endl << endl;
