@@ -33,7 +33,7 @@ int nextFitTracker = 0;
 
 using namespace std;
 
-void readInput(const char* filename, vector<Process>& allP) {
+/*void readInput(const char* filename, vector<Process>& allP) {
 	
 	vector<vector<char> > readFile;
 	
@@ -76,14 +76,39 @@ void readInput(const char* filename, vector<Process>& allP) {
 	j.pushInstance(550, 900);
 	allP.push_back(j);
 	
-	/*
-	N
-	proc1 p1_mem p1_arr_time_1/p1_run_time_1 ... p1_arr_time_a/p1_run_time_a
-	proc2 p2_mem p2_arr_time_1/p2_run_time_1 ... p1_arr_time_b/p1_run_time_b
-	...
-	procN pN_mem pN_arr_time_1/pN_run_time_1 ... p1_arr_time_z/p1_run_time_z
-	*/
 	
+	//N
+	//proc1 p1_mem p1_arr_time_1/p1_run_time_1 ... p1_arr_time_a/p1_run_time_a
+	//proc2 p2_mem p2_arr_time_1/p2_run_time_1 ... p1_arr_time_b/p1_run_time_b
+	//...
+	//procN pN_mem pN_arr_time_1/pN_run_time_1 ... p1_arr_time_z/p1_run_time_z
+	
+}*/
+
+vector<string> tokenize(string input){
+	vector<string> output;
+	int prev = 0;
+	int pos = 0;
+	while( (pos = input.find(' ',prev)) >= 0 ){
+		output.push_back(input.substr(prev, pos));
+		prev = pos;
+	}
+	return output;
+}
+
+void readInput(char* fname, vector<Process>& processes){
+	ifstream in(fname);
+	string line;
+	while(in >> line){
+		vector<string> parsed = tokenize(line);
+		Process p(parsed[0][0], atoi(parsed[1].c_str()));
+		for(int i=2; i<parsed.size(); ++i){
+			int slashpos = parsed[i].find('/', 0);
+			p.pushInstance(atoi(parsed[i].substr(0, slashpos).c_str()), atoi(parsed[i].substr(slashpos).c_str()));
+		}
+		processes.push_back(p);
+	}
+	//return processes;
 }
 
 void printMemory(const string& memory) {
