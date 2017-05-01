@@ -1,13 +1,13 @@
 /* TODO::
 
 * Reading input files and sorting that out. 
-* Non-contiguous memory allocation. 
 * Ordering the processes for checking (PQueue? Sorted Vector?)
 * Run on server/compare outputs to expected. 
 * Check if Peter is OK with int-ly typed algorithms. 
 * Actually have the code print out the name of the algorithm, 
     i.e. time 0ms: Simulator started (Contiguous -- Next-Fit)
      vs  time 0ms: Simulator started (1)
+* Sort out skipping multiple jobs on a single tick. 
 
 
 */
@@ -345,12 +345,85 @@ string defragment(string& memory, vector<Process>& allP, int& tick) {
 int main(int argc, char* argv[]) {
 	
 	
+	
+	// Runs the algorithms: next fit, best fit, and worst fit. All contiguous. 
 	for (int algorithm = 1; algorithm < 4; algorithm++) {
 		string memory(MEMORYSIZE, '.');
 		vector<Process> allP;
 		readInput(argv[1], allP);
 		int tick = 0;
 		cout << "time " << tick << "ms: Simulator started (" << algorithm << ")" << endl;
+		while (!allP.empty()) {
+			// Remove all processes that are done this tick.
+			for (unsigned int i=0; i<allP.size(); i++) {
+				if (allP[i].getFinishTime() == tick) {
+					cout << "time " << tick << "ms: Process " << allP[i].getID() << " removed:" << endl;
+					removeProcess(memory, allP[i]);
+					printMemory(memory);
+					allP[i].popInstance();
+					
+					// If there are no more instances of this process...
+					if (allP[i].remainingInstances() == 0) {
+						// Remove it from the processes that can occur.
+						allP.erase(allP.begin()+i);
+					}
+				}
+			}
+			// Place new processes.
+			for (unsigned int i=0; i<allP.size(); i++) {
+				if (allP[i].getArrivalTime() == tick) {
+					cout << "time " << tick << "ms: Process " << allP[i].getID() << " arrived (requires " << allP[i].getMemorySize() << " frames)" << endl;
+					
+					int placeLoc = findLocation(memory, allP[i], algorithm);
+					
+					// Place it naturally, no special cases.
+					if (placeLoc != -1) {
+						cout << "time " << tick << "ms: Placed process " << allP[i].getID() << ":" << endl;
+						placeProcess(memory, allP[i], placeLoc);
+						printMemory(memory);
+					}
+					else { // Cannot place process currently.
+						// If there is enough space if we defrag.
+						if (unallocatedMemoryFrames(memory) >= allP[i].getMemorySize()) {
+							cout << "time " << tick << "ms: Cannot place process " << allP[i].getID() << " -- starting defragmentation" << endl;
+							
+							string defragResponse = defragment(memory, allP, tick);
+							cout << defragResponse << endl;
+							
+							printMemory(memory);
+							placeLoc = findLocation(memory, allP[i], algorithm);
+							cout << "time " << tick << "ms: Placed process " << allP[i].getID() << ":" << endl;
+							placeProcess(memory, allP[i], placeLoc);
+							printMemory(memory);
+						}
+						// If there is not enough space at all, specs say to skip.
+						else {
+							cout << "time " << tick << "ms: Cannot place process " << allP[i].getID() << " -- skipped!" << endl;
+							allP[i].popInstance();
+							
+							// If there are no more instances of this process...
+							if (allP[i].remainingInstances() == 0) {
+								// Remove it from the processes that can occur.
+								allP.erase(allP.begin()+i);
+							}
+						}
+					}
+				}
+			}
+			tick = findNextEvent(allP, tick);
+			
+		}
+		
+		cout << "time " << tick << "ms: Simulator ended (" << algorithm << ")" << endl << endl;
+	}
+	
+	// Runs the non-contiguous first fit. 
+	{
+		string memory(MEMORYSIZE, '.');
+		vector<Process> allP;
+		readInput(argv[1], allP);
+		int tick = 0;
+		cout << "time " << tick << "ms: Simulator started (Non-contiguous)" << endl;
 		while (!allP.empty()) {
 			// Remove all processes that are done this tick.
 			for (unsigned int i=0; i<allP.size(); i++) {
@@ -367,38 +440,22 @@ int main(int argc, char* argv[]) {
 					}
 				}
 			}
+			
 			// Place new processes.
 			for (unsigned int i=0; i<allP.size(); i++) {
 				if (allP[i].getArrivalTime() == tick) {
 					cout << "time " << tick << "ms: Process " << allP[i].getID() << " arrived (requires " << allP[i].getMemorySize() << " frames)" << endl;
-				
-					int placeLoc = findLocation(memory, allP[i], algorithm);
-				
+					
 					// Place it naturally, no special cases.
-					if (placeLoc != -1) {
+					if (unallocatedMemoryFrames(memory) >= allP[i].getMemorySize()) {
 						cout << "time " << tick << "ms: Placed process " << allP[i].getID() << ":" << endl;
-						placeProcess(memory, allP[i], placeLoc);
+						placeNonContiguousProcess(memory, allP[i]);
 						printMemory(memory);
 					}
-					else { // Cannot place process currently.
-						// If there is enough space if we defrag.
-						if (unallocatedMemoryFrames(memory) >= allP[i].getMemorySize()) {
-							cout << "time " << tick << "ms: Cannot place process " << allP[i].getID() << " -- starting defragmentation" << endl;
-						
-							string defragResponse = defragment(memory, allP, tick);
-							cout << defragResponse << endl;
-						
-							printMemory(memory);
-							placeLoc = findLocation(memory, allP[i], algorithm);
-							cout << "time " << tick << "ms: Placed process " << allP[i].getID() << ":" << endl;
-							placeProcess(memory, allP[i], placeLoc);
-							printMemory(memory);
-						}
-						// If there is not enough space at all, specs say to skip.
-						else {
+					else { // Not enough free frames in memory. Skip. 
 							cout << "time " << tick << "ms: Cannot place process " << allP[i].getID() << " -- skipped!" << endl;
 							allP[i].popInstance();
-						
+							
 							// If there are no more instances of this process...
 							if (allP[i].remainingInstances() == 0) {
 								// Remove it from the processes that can occur.
@@ -407,13 +464,14 @@ int main(int argc, char* argv[]) {
 						}
 					}
 				}
+				tick = findNextEvent(allP, tick);
+				
 			}
-			tick = findNextEvent(allP, tick);
-			
-		}
 		
-		cout << "time " << tick << "ms: Simulator ended (" << algorithm << ")" << endl << endl;
+		cout << "time " << tick << "ms: Simulator ended (Non-contiguous)" << endl;
 	}
+	
+	
 	
 	/*
 	//string memory = "ffffffffffffffffffffffffbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccccccccccccccccccccccccccccccccccddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddeeeeeeeeeeeeee..............................................";
