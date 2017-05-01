@@ -90,8 +90,10 @@ vector<string> tokenize(string input){
 	int prev = 0;
 	int pos = 0;
 	while( (pos = input.find(' ',prev)) >= 0 ){
-		output.push_back(input.substr(prev, pos));
-		prev = pos;
+		//cout << "pos: "<<pos<<"; prev: "<<prev<<endl;
+		output.push_back(input.substr(prev, pos-prev));
+		prev = pos + 1;
+		//cout << output[output.size()-1] << endl;
 	}
 	return output;
 }
@@ -99,14 +101,19 @@ vector<string> tokenize(string input){
 void readInput(char* fname, vector<Process>& processes){
 	ifstream in(fname);
 	string line;
-	while(in >> line){
+	while(getline(in, line)){
 		vector<string> parsed = tokenize(line);
+		if(parsed.size() < 3) continue;
 		Process p(parsed[0][0], atoi(parsed[1].c_str()));
-		for(int i=2; i<parsed.size(); ++i){
+		for(unsigned int i=2; i<parsed.size(); ++i){
 			int slashpos = parsed[i].find('/', 0);
-			p.pushInstance(atoi(parsed[i].substr(0, slashpos).c_str()), atoi(parsed[i].substr(slashpos).c_str()));
+			int a = atoi(parsed[i].substr(0, slashpos).c_str());
+			int b = atoi(parsed[i].substr(slashpos+1).c_str());
+			//cout << "a: " << a <<"; b: " << b << endl; 
+			p.pushInstance(a,b);
 		}
 		processes.push_back(p);
+		//cout << p.toString() << endl;
 	}
 	//return processes;
 }
