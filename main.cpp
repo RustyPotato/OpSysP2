@@ -95,6 +95,7 @@ vector<string> tokenize(string input){
 		prev = pos + 1;
 		//cout << output[output.size()-1] << endl;
 	}
+	output.push_back(input.substr(prev));
 	return output;
 }
 
@@ -106,6 +107,7 @@ void readInput(char* fname, vector<Process>& processes){
 		if(parsed.size() < 3) continue;
 		Process p(parsed[0][0], atoi(parsed[1].c_str()));
 		for(unsigned int i=2; i<parsed.size(); ++i){
+			//cout << "TOKEN: " << parsed[i] << endl;
 			int slashpos = parsed[i].find('/', 0);
 			int a = atoi(parsed[i].substr(0, slashpos).c_str());
 			int b = atoi(parsed[i].substr(slashpos+1).c_str());
