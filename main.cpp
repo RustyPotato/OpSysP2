@@ -95,6 +95,7 @@ vector<string> tokenize(string input){
 		prev = pos + 1;
 		//cout << output[output.size()-1] << endl;
 	}
+	output.push_back(input.substr(prev, pos-prev));
 	return output;
 }
 
@@ -376,6 +377,11 @@ string defragment(string& memory, vector<Process>& allP, int& tick) {
 
 int main(int argc, char* argv[]) {
 	
+	vector<string> algorithmNames;
+	algorithmNames.push_back("Contiguous -- First-Fit");
+	algorithmNames.push_back("Contiguous -- Next-Fit");
+	algorithmNames.push_back("Contiguous -- Best-Fit");
+	algorithmNames.push_back("Contiguous -- Worst-Fit");
 	
 	
 	// Runs the algorithms: next fit, best fit, and worst fit. All contiguous. 
@@ -384,7 +390,7 @@ int main(int argc, char* argv[]) {
 		vector<Process> allP;
 		readInput(argv[1], allP);
 		int tick = 0;
-		cout << "time " << tick << "ms: Simulator started (" << algorithm << ")" << endl;
+		cout << "time " << tick << "ms: Simulator started (" << algorithmNames[algorithm] << ")" << endl;
 		while (!allP.empty()) {
 			// Remove all processes that are done this tick.
 			for (unsigned int i=0; i<allP.size(); i++) {
@@ -398,9 +404,11 @@ int main(int argc, char* argv[]) {
 					if (allP[i].remainingInstances() == 0) {
 						// Remove it from the processes that can occur.
 						allP.erase(allP.begin()+i);
+						i--;
 					}
 				}
 			}
+			
 			// Place new processes.
 			for (unsigned int i=0; i<allP.size(); i++) {
 				if (allP[i].getArrivalTime() == tick) {
@@ -437,16 +445,16 @@ int main(int argc, char* argv[]) {
 							if (allP[i].remainingInstances() == 0) {
 								// Remove it from the processes that can occur.
 								allP.erase(allP.begin()+i);
+								i--;
 							}
 						}
 					}
 				}
 			}
 			tick = findNextEvent(allP, tick);
-			
 		}
 		
-		cout << "time " << tick << "ms: Simulator ended (" << algorithm << ")" << endl << endl;
+		cout << "time " << tick << "ms: Simulator ended (" << algorithmNames[algorithm] << ")" << endl << endl;
 	}
 	
 	// Runs the non-contiguous first fit. 
@@ -469,6 +477,7 @@ int main(int argc, char* argv[]) {
 					if (allP[i].remainingInstances() == 0) {
 						// Remove it from the processes that can occur.
 						allP.erase(allP.begin()+i);
+						i--;
 					}
 				}
 			}
@@ -492,6 +501,7 @@ int main(int argc, char* argv[]) {
 							if (allP[i].remainingInstances() == 0) {
 								// Remove it from the processes that can occur.
 								allP.erase(allP.begin()+i);
+								i--;
 							}
 						}
 					}
